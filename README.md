@@ -5,7 +5,7 @@ WARNING! These functions are in active development and might contain bugs
 
 ## Microsynteny plots
 
-Recommended for alignments <30K 
+Recommended for syntenic blocks <30Kbp 
 
 The draw.microsynteny plot works similarly to draw.linear in the original syntenyPlotteR package (https://github.com/Farre-lab/syntenyPlotteR)
 

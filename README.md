@@ -1,6 +1,8 @@
 # syntenyPlotteR_BETA
 New drawing functions for syntenyPlotteR - IN ACTIVE DEVELOPMENT
 
+WARNING! These functions are in active development and might contain bugs
+
 ## Microsynteny plots
 
 Recommended for alignments <30K 

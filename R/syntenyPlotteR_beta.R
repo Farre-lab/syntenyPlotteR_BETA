@@ -39,7 +39,7 @@
 #'
 #' The function works using the chromosome length file to order the Y axis and provide chromosome lengths to draw chromosome ideograms and the alignment files provides coordinates to draw the lines between ideograms
 #'
-#' Example: draw.microsynteny("outputname","example_lengths.txt","example_alignment_1.txt","example_alignment_2.txt","example_alignment_3.txt",fileformat = "pdf")
+#' Example: draw.microsynteny("outputname","test_lengths","test_alignment_1")
 
 
 

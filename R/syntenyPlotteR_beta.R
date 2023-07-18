@@ -3,6 +3,9 @@
 #' This function draws linear synteny plots for microsyntenic regions - recommended for alignments >30K in length
 #'
 #' It requires:
+#' 
+#' library(ggplot2) - install.packages(ggplot2)
+#' library(ggforce) - install.packages(ggforce)
 #'
 #' 1. the output file name;
 #'

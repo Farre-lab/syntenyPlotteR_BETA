@@ -3,7 +3,7 @@ New drawing functions for syntenyPlotteR - IN ACTIVE DEVELOPMENT
 
 ## Microsynteny plots
 
-Reccomended for alignments >30K 
+Recommended for alignments <30K 
 
 The draw.microsynteny plot works similarly to draw.linear in the original syntenyPlotteR package (https://github.com/Farre-lab/syntenyPlotteR)
 

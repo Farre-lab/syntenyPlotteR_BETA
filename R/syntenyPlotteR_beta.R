@@ -207,6 +207,8 @@ draw.microsynteny <- function(output,sizefile,...,fileformat = "png",colours = c
 #' -- top of file -- to the last target species and reference species in the alignment files -- end of file.
 #' in this format:
 #' chromosome ID, chromosome length, species identifier
+#' OPTIONAL:
+#' you can also include in a fourth column the centromere position if you want this annotated 
 #'
 #' 3. files containing the syntenic blocks - one file per alignment, in order from first target/reference
 #' (most recent species pairwise alignment in ancestral reconstruction data) alignment file
@@ -235,6 +237,17 @@ draw.microsynteny <- function(output,sizefile,...,fileformat = "png",colours = c
 #`
 #` 7. The insert size between the chromosomes represented on the plot, the default is 6M however for small genomes you may want to scale down to humndreds/thousands depending on genome size, change by inputting: `insert_size = 6000000` (default)
 #'
+#' 8. The chromosome ID label size, the default is 2, change by inputting: `chr.label.size = 2`
+#' 
+#' 9. The chromosome ID angle, the default is 45, change by inputting: `angle.chr.label = 45`
+#'
+#' 10. The species ID label size, the default is 3, change by inputting: `sps.label.size = 2`
+#' 
+#' 11. The chromosome ID label height above chromosome drawing, the default is 0.2, change by inputting: `chr.label.height = 0.2`
+#' 
+#' 12. The centromere label colour, the default is red, change by inputting: `centromere.colour = "red"`
+#'
+#'
 #' The function works using the chromosome length file to order the Y axis and provide chromosome lengths to draw chromosome ideograms and the alignment files provides coordinates to draw the alignment bands between ideograms
 #'
 #' Example: `draw.linear("outputname", "example_lengths.txt", "example_alignment_1.txt", "example_alignment_2.txt", "example_alignment_3.txt", directory = "path/to/directory", fileformat = "pdf")`
@@ -249,7 +262,12 @@ draw.microsynteny <- function(output,sizefile,...,fileformat = "png",colours = c
 #' @param w width of output image using the format `w = 13` (default)
 #' @param h height of output image using the format `h = 5` (default)
 #' @param opacity opacity of syntenic bands using the format `opacity = .5` (default)
-#` @param insert_size insert size between chromosomes drawn using format `insert_size = 6000000` (default)
+#' @param insert_size insert size between chromosomes drawn using format `insert_size = 6000000` (default)
+#' @param chr.label.size chromosome ID label size `chr.label.size = 2` (default)
+#' @param angle.chr.label chromosome ID label angle `angle.chr.label = 45` (default)
+#' @param sps.label.size chromosome species label size `sps.label.size = 2` (default)
+#' @param chr.label.height chromosome ID label height above chromosome `chr.label.height = 0.2` (default)
+#' @param centromere.colour centromere label colour - if included centromere position in length file `centromere.colour = "red"` (default)
 #' @return An image file showing the linear comparison drawings
 #' @examples
 #'
@@ -273,51 +291,73 @@ draw.microsynteny <- function(output,sizefile,...,fileformat = "png",colours = c
 #'
 
 
-
-
-draw.linear.2.0 <- function(output, sizefile, ..., directory = NULL, fileformat = "png", colours = colours.default, w = 13, h = 5, opacity = .5, insert_size = 6000000) {
+draw.linear.2.0 <- function(output, sizefile, ..., directory = NULL, fileformat = "png", colours = colours.default, 
+                            w = 13, h = 5, opacity = .5, insert.size = 6000000, 
+                            chr.label.size = 2, sps.label.size = 3, angle.chr.label = 45,
+                            centromere.colour = "red", chr.label.height = 0.2) {
   
   if (is.null(directory)) {
     directory <- tempdir()
-  }
+  }  
   
   synteny.data.reframing <- function(data, tar.y, ref.y, compiled.size) {
-    synteny <- data.frame()
-    for (i in c(1:nrow(data))) {
+    
+    synteny_list <- vector("list", nrow(data))
+    
+    tar_sizes <- compiled.size[compiled.size$species %in% unique(data$tar.species), ]
+    ref_sizes <- compiled.size[compiled.size$species %in% unique(data$ref.species), ]
+    
+    names(tar_sizes) <- c("tarchr", "size", "species", "xstart", "xend")
+    names(ref_sizes) <- c("refchr", "size", "species", "xstart", "xend")
+    
+    for (i in 1:nrow(data)) {
       reference <- data[i, "ref.species"]
       target <- data[i, "tar.species"]
       tar_chr <- data[i, "tarchr"]
       ref_chr <- data[i, "refchr"]
       dir <- data[i, "dir"]
-      tar_sizes <- compiled.size[compiled.size$species == target, ]
-      names(tar_sizes) <- c("tarchr", "size", "species", "xstart", "xend")
-      ref_sizes <- compiled.size[compiled.size$species == reference, ]
-      names(ref_sizes) <- c("refchr", "size", "species", "xstart", "xend")
-      tar_add <- tar_sizes[as.character(tar_sizes$tarchr) == as.character(tar_chr), ]$xstart
-      ref_add <- ref_sizes[as.character(ref_sizes$refchr) == as.character(ref_chr), ]$xstart
-      tar_y <- tar.y
-      ref_y <- ref.y
+      
+      tar_add <- tar_sizes[tar_sizes$tarchr == tar_chr, "xstart"]
+      ref_add <- ref_sizes[ref_sizes$refchr == ref_chr, "xstart"]
+      
       tar_xstart <- data[i, "tarstart"] + tar_add
       tar_xend <- data[i, "tarend"] + tar_add
       ref_xstart <- data[i, "refstart"] + ref_add
       ref_xend <- data[i, "refend"] + ref_add
       
+      tar_y <- tar.y
+      ref_y <- ref.y
+      
       inverted <- grepl("-", dir, fixed = TRUE)
-      if (inverted == TRUE) {
+      
+      if (inverted) {
         df <- data.frame(
-          x = c(tar_xstart, tar_xend, ref_xstart, ref_xend), y = c(tar_y, tar_y, ref_y, ref_y),
-          fill = ref_chr, group = paste0("s", i), ref = reference, tar = target
+          x = c(tar_xstart, tar_xend, ref_xstart, ref_xend),
+          y = c(tar_y, tar_y, ref_y, ref_y),
+          fill = ref_chr, 
+          group = paste0("s", i), 
+          ref = reference, 
+          tar = target
         )
       } else {
         df <- data.frame(
-          x = c(tar_xstart, ref_xstart, ref_xend, tar_xend), y = c(tar_y, ref_y, ref_y, tar_y),
-          fill = ref_chr, group = paste0("s", i), ref = reference, tar = target
+          x = c(tar_xstart, ref_xstart, ref_xend, tar_xend),
+          y = c(tar_y, ref_y, ref_y, tar_y),
+          fill = ref_chr, 
+          group = paste0("s", i), 
+          ref = reference, 
+          tar = target
         )
       }
-      synteny <- rbind(synteny, df)
+      
+      synteny_list[[i]] <- df
     }
+    
+    synteny <- do.call(rbind, synteny_list)
+    
     return(synteny)
   }
+  
   
   colours.default <- c(
     "1" = "#BFD73B", "2" = "#39ACE2", "3" = "#F16E8A",
@@ -337,64 +377,96 @@ draw.linear.2.0 <- function(output, sizefile, ..., directory = NULL, fileformat 
   )
   
   xstart <- xend <- refchr <- tarchr <- x <- y <- group <- fill <- chromosome <- species <- NULL
-  sizes <- utils::read.delim(sizefile, header = FALSE) # to be consistent with naming in EH
-  names(sizes) <- c("chromosome", "size", "species")
+  sizes <- utils::read.delim(sizefile, header = FALSE) 
+  if(ncol(sizes) > 3){
+    sizes2 <- sizes
+    sizes <- sizes[,1:3]
+    names(sizes2) <- c("chromosome", "size", "species","centromere")
+    names(sizes) <- c("chromosome", "size", "species")
+  }else{
+    names(sizes) <- c("chromosome", "size", "species")
+  }
   sizes$size <- as.numeric(gsub(",", "", sizes$size))
   
   count <- 0
-  compiled.size <- data.frame()
-  for (i in unique(sizes$species)) {
-    size.intermediate <- sizes[sizes$species == i, ]
-    for (x in c(1:nrow(size.intermediate))) {
+  
+  compiled.size_list <- list()
+  
+  for(species in unique(sizes$species)) {
+    
+    size.intermediate <- sizes[sizes$species == species, ]
+    
+    total_start <- 1
+    size.intermediate$xstart <- NA
+    size.intermediate$xend <- NA
+    
+    for (x in 1:nrow(size.intermediate)) {
       if (x == 1) {
-        total_start <- 1
-        total_end <- size.intermediate[x, "size"]
+        total_start <- 1  
       } else {
-        total_start <- total_end + insert_size
-        total_end <- total_start + size.intermediate[x, "size"]
+        total_start <- total_end + insert.size  
       }
-      size.intermediate[x, "xstart"] <- total_start
-      size.intermediate[x, "xend"] <- total_end
+      
+      total_end <- total_start + size.intermediate[x, "size"]  
+      size.intermediate[x, "xstart"] <- total_start  
+      size.intermediate[x, "xend"] <- total_end  
+      
+      
     }
-    compiled.size <- rbind(compiled.size, size.intermediate)
+    
+    compiled.size_list[[species]] <- size.intermediate
   }
+  
+  compiled.size <- bind_rows(compiled.size_list)
   
   for (z in unique(compiled.size$species)) {
     compiled.size$y[compiled.size$species == z] <- count
     count <- count + 2
+  }  
+  
+  
+  if(exists("sizes2")){
+     sizes2 <- cbind(compiled.size,sizes2)
+     sizes2$xcentromere <- sizes2$xstart + sizes2$centromere
+     sizes2 <- sizes2[,c("xcentromere","y")]
   }
   
-  list.of.files <- list()
-  for (i in list(...)) {
-    list.of.files[[i]] <- i
-  }
+
   
-  listsynt <- list()
-  for (i in 1:length(list.of.files)) {
-    num <- i
-    file <- list.of.files[[num]]
+  list.of.files <- list(...)
+  
+  
+  listsynt <- lapply(list.of.files, function(file) {
+    # Read the file and preprocess data
     dataTMP <- utils::read.delim(file, header = FALSE)
     data2 <- dataTMP[, c(4, 5, 6, 1, 2, 3, 7, 8, 9)]
     colnames(data2) <- c("tarchr", "tarstart", "tarend", "refchr", "refstart", "refend", "dir", "ref.species", "tar.species")
-    data2$tarstart <- as.numeric(gsub(",", "", data2$tarstart))
-    data2$tarend <- as.numeric(gsub(",", "", data2$tarend))
-    data2$refstart <- as.numeric(gsub(",", "", data2$refstart))
-    data2$refend <- as.numeric(gsub(",", "", data2$refend))
+    
+    # Remove commas and convert to numeric
+    data2[, c("tarstart", "tarend", "refstart", "refend")] <- 
+      lapply(data2[, c("tarstart", "tarend", "refstart", "refend")], function(x) as.numeric(gsub(",", "", x)))
+    
+    # Get species and y coordinates for reference and target species
     reference <- data2[1, "ref.species"]
     target <- data2[1, "tar.species"]
     ref_y <- compiled.size[compiled.size$species == reference, "y"]
     tar_y <- compiled.size[compiled.size$species == target, "y"]
-    if (tar_y[1] > ref_y[1]){
+    
+    # Adjust y values if necessary
+    if (tar_y[1] > ref_y[1]) {
       ref_y <- ref_y[1] + 0.1
       tar_y <- tar_y[1]
-    } else{
+    } else {
       ref_y <- ref_y[1]
       tar_y <- tar_y[1] + 0.1
     }
+    
+    # Call the synteny data reframing function and assign the result
     x <- synteny.data.reframing(data2, tar_y, ref_y, compiled.size)
     x$fill <- as.factor(x$fill)
-    listsynt[[i]] <- x
-  }
+    
+    return(x)
+  })
   
   compiled.size$chromosome <- as.factor(compiled.size$chromosome)
   
@@ -410,14 +482,14 @@ draw.linear.2.0 <- function(output, sizefile, ..., directory = NULL, fileformat 
       data = ref_sizes, mapping = ggplot2::aes(xmin = xstart, xmax = xend, ymin = y, ymax = y + 0.10, fill = chromosome),
       color = "black", alpha = 0.85, linewidth = 0.2
     ) +
-      ggplot2::geom_text(data = ref_sizes, ggplot2::aes(x = (xstart + xend) / 2, y = y + 0.2, label = chromosome), size = 2, angle = 45) +
-      ggplot2::geom_text(data = ref_sizes, mapping = ggplot2::aes(x = 2, y = y, label = species), size = 3, hjust = 1) +
+      ggplot2::geom_text(data = ref_sizes, ggplot2::aes(x = (xstart + xend) / 2, y = y + chr.label.height, label = chromosome), size = chr.label.size, angle = angle.chr.label) +
+      ggplot2::geom_text(data = ref_sizes, mapping = ggplot2::aes(x = 2, y = y, label = species), size = sps.label.size, hjust = 1) +
       ggplot2::geom_rect(
         data = tar_sizes, mapping = ggplot2::aes(xmin = xstart, xmax = xend, ymin = y, ymax = y + 0.10), fill = "grey85",
         color = "black", alpha = 0.85, linewidth = 0.2
       ) +
-      ggplot2::geom_text(data = tar_sizes, ggplot2::aes(x = (xstart + xend) / 2, y = y + 0.2, label = chromosome), size = 2, angle = 45) +
-      ggplot2::geom_text(data = tar_sizes, mapping = ggplot2::aes(x = 2, y = y, label = species), size = 3, hjust = 1) +
+      ggplot2::geom_text(data = tar_sizes, ggplot2::aes(x = (xstart + xend) / 2, y = y + chr.label.height, label = chromosome), size = chr.label.size, angle = angle.chr.label) +
+      ggplot2::geom_text(data = tar_sizes, mapping = ggplot2::aes(x = 2, y = y, label = species), size = sps.label.size, hjust = 1) +
       ggplot2::geom_polygon(data = data, alpha = opacity, ggplot2::aes(x = x, y = y, group = group, fill = fill))
   }
   
@@ -434,8 +506,11 @@ draw.linear.2.0 <- function(output, sizefile, ..., directory = NULL, fileformat 
       legend.position = "none"
     )
   
+  if(exists("sizes2")){
+    p <- p + ggplot2::geom_point(data = sizes2, mapping = ggplot2::aes(x = xcentromere, y = y + 0.05), size = 1, shape = 18, color = centromere.colour,)
+  }
+  
   message(paste0("Saving linear image to ", directory))
   print(p)
   ggplot2::ggsave(paste0(directory,"/",output, ".", fileformat), p, device = fileformat, width = w, height = h)
 }
-

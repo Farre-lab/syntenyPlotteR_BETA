@@ -417,7 +417,7 @@ draw.linear.2.0 <- function(output, sizefile, ..., directory = NULL, fileformat 
     compiled.size_list[[species]] <- size.intermediate
   }
   
-  compiled.size <- bind_rows(compiled.size_list)
+  compiled.size <- do.call(rbind, compiled.size_list)
   
   for (z in unique(compiled.size$species)) {
     compiled.size$y[compiled.size$species == z] <- count

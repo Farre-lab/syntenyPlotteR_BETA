@@ -437,22 +437,18 @@ draw.linear.2.0 <- function(output, sizefile, ..., directory = NULL, fileformat 
   
   
   listsynt <- lapply(list.of.files, function(file) {
-    # Read the file and preprocess data
     dataTMP <- utils::read.delim(file, header = FALSE)
     data2 <- dataTMP[, c(4, 5, 6, 1, 2, 3, 7, 8, 9)]
     colnames(data2) <- c("tarchr", "tarstart", "tarend", "refchr", "refstart", "refend", "dir", "ref.species", "tar.species")
     
-    # Remove commas and convert to numeric
     data2[, c("tarstart", "tarend", "refstart", "refend")] <- 
       lapply(data2[, c("tarstart", "tarend", "refstart", "refend")], function(x) as.numeric(gsub(",", "", x)))
     
-    # Get species and y coordinates for reference and target species
     reference <- data2[1, "ref.species"]
     target <- data2[1, "tar.species"]
     ref_y <- compiled.size[compiled.size$species == reference, "y"]
     tar_y <- compiled.size[compiled.size$species == target, "y"]
     
-    # Adjust y values if necessary
     if (tar_y[1] > ref_y[1]) {
       ref_y <- ref_y[1] + 0.1
       tar_y <- tar_y[1]
@@ -461,7 +457,6 @@ draw.linear.2.0 <- function(output, sizefile, ..., directory = NULL, fileformat 
       tar_y <- tar_y[1] + 0.1
     }
     
-    # Call the synteny data reframing function and assign the result
     x <- synteny.data.reframing(data2, tar_y, ref_y, compiled.size)
     x$fill <- as.factor(x$fill)
     
